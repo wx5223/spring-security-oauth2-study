@@ -13,7 +13,7 @@
     <context:annotation-config/>
     <context:component-scan base-package="com.wx"/>
 	<http access-denied-page="/login.jsp?authorization_error=true" xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/sparklr/**" access="ROLE_USER" />
+		<intercept-url pattern="/test/**" access="ROLE_USER" />
 		<intercept-url pattern="/facebook/**" access="ROLE_USER" />
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 
