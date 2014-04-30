@@ -1,0 +1,1 @@
+http://localhost:8080/server/oauth/authorize?client_id=client1&redirect_uri=http://localhost:8080/client/test&response_type=code
