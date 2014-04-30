@@ -74,19 +74,6 @@ public class IndexController {
         return "test";
     }
 
-	@RequestMapping("/photos/trusted/message")
-	@PreAuthorize("#oauth2.clientHasRole('ROLE_CLIENT')")
-	@ResponseBody
-	public String getTrustedClientMessage() {
-		return "Hello, Trusted Client";
-	}
-
-	@RequestMapping("/photos/user/message")
-	@ResponseBody
-	public String getTrustedUserMessage(Principal principal) {
-		return "Hello, Trusted User" + (principal!=null ? " " + principal.getName() : "");
-	}
-
     public RestService getRestService() {
         return restService;
     }
