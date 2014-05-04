@@ -1,1 +1,2 @@
-http://localhost:8080/server/oauth/authorize?client_id=client1&redirect_uri=http://localhost:8080/client/test&response_type=code
+http://localhost:8080/server/oauth/authorize?client_id=client2&redirect_uri=http://localhost:8080/test/test&response_type=code&scope=read
+http://localhost:8080/server/oauth/authorize?client_id=client1&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fclient%2Ftest&response_type=code&scope=read+write&state=tPNHOf
