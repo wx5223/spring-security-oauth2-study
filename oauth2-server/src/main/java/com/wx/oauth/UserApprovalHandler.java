@@ -18,67 +18,79 @@ package com.wx.oauth;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.approval.TokenServicesUserApprovalHandler;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.ClientRegistrationException;
+import org.springframework.security.oauth2.provider.approval.ApprovalStoreUserApprovalHandler;
 
 import java.util.Collection;
-import java.util.HashSet;
 
 /**
  * @author Dave Syer
  * 
  */
-public class UserApprovalHandler extends TokenServicesUserApprovalHandler {
+public class UserApprovalHandler extends ApprovalStoreUserApprovalHandler {
 
-	private Collection<String> autoApproveClients = new HashSet<String>();
-	
-	private boolean useTokenServices = true;
+    private boolean useApprovalStore = true;
 
-	/**
-	 * @param useTokenServices the useTokenServices to set
-	 */
-	public void setUseTokenServices(boolean useTokenServices) {
-		this.useTokenServices = useTokenServices;
-	}
+    private ClientDetailsService clientDetailsService;
 
-	/**
-	 * @param autoApproveClients the auto approve clients to set
-	 */
-	public void setAutoApproveClients(Collection<String> autoApproveClients) {
-		this.autoApproveClients = autoApproveClients;
-	}
-	
-	@Override
-	public AuthorizationRequest updateBeforeApproval(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
-		return super.updateBeforeApproval(authorizationRequest, userAuthentication);
-	}
+    /**
+     * Service to load client details (optional) for auto approval checks.
+     *
+     * @param clientDetailsService a client details service
+     */
+    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+        this.clientDetailsService = clientDetailsService;
+        super.setClientDetailsService(clientDetailsService);
+    }
 
-	/**
-	 * Allows automatic approval for a white list of clients in the implicit grant case.
-	 * 
-	 * @param authorizationRequest The authorization request.
-	 * @param userAuthentication the current user authentication
-	 * 
-	 * @return Whether the specified request has been approved by the current user.
-	 */
-	@Override
-	public boolean isApproved(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
-	
-		// If we are allowed to check existing approvals this will short circuit the decision
-		if (useTokenServices && super.isApproved(authorizationRequest, userAuthentication)) {
-			return true;
-		}
+    /**
+     * @param useApprovalStore the useTokenServices to set
+     */
+    public void setUseApprovalStore(boolean useApprovalStore) {
+        this.useApprovalStore = useApprovalStore;
+    }
 
-		if (!userAuthentication.isAuthenticated()) {
-			return false;
-		}
+    /**
+     * Allows automatic approval for a white list of clients in the implicit grant case.
+     *
+     * @param authorizationRequest The authorization request.
+     * @param userAuthentication the current user authentication
+     *
+     * @return An updated request if it has already been approved by the current user.
+     */
+    @Override
+    public AuthorizationRequest checkForPreApproval(AuthorizationRequest authorizationRequest,
+                                                    Authentication userAuthentication) {
 
-		String flag = authorizationRequest.getApprovalParameters().get(AuthorizationRequest.USER_OAUTH_APPROVAL);
-		boolean approved = flag != null && flag.toLowerCase().equals("true");
+        boolean approved = false;
+        // If we are allowed to check existing approvals this will short circuit the decision
+        if (useApprovalStore) {
+            authorizationRequest = super.checkForPreApproval(authorizationRequest, userAuthentication);
+            approved = authorizationRequest.isApproved();
+        }
+        else {
+            if (clientDetailsService != null) {
+                Collection<String> requestedScopes = authorizationRequest.getScope();
+                try {
+                    ClientDetails client = clientDetailsService
+                            .loadClientByClientId(authorizationRequest.getClientId());
+                    for (String scope : requestedScopes) {
+                        if (client.isAutoApprove(scope) || client.isAutoApprove("all")) {
+                            approved = true;
+                            break;
+                        }
+                    }
+                }
+                catch (ClientRegistrationException e) {
+                }
+            }
+        }
+        authorizationRequest.setApproved(approved);
 
-		return approved
-				|| (authorizationRequest.getResponseTypes().contains("token") && autoApproveClients
-						.contains(authorizationRequest.getClientId()));
+        return authorizationRequest;
 
-	}
+    }
 
 }
